@@ -1,9 +1,9 @@
 #!/bin/bash
-# VERSION: 0.01.00
+# VERSION: 0.00.06
 
 # --- Script to sync machine-specific dotfiles to a central GitHub Repo ---
 
-VERSION="0.01.00"
+VERSION="0.00.06"
 
 # Handle version flags
 if [[ "$1" == "-v" || "$1" == "--version" ]]; then
@@ -25,14 +25,13 @@ FILES_TO_SYNC_ROOT=(".bashrc" ".bash_aliases")
 FILES_TO_SYNC_CONFIG=(
     ".gitconfig"
     ".hushlogin"
-    ".snclirc"
-    ".vimrc"
     ".config/terminator"  # Source path from $HOME
     ".config/lsd"         # Source path from $HOME
-    ".vim"                # Directory
-    "api_keys"            # Directory/Files from $HOME/api_keys
 )
 CONFIG_SUBDIR="config_files" 
+
+# 3. Placeholder for the test.config file (created if missing)
+PLACEHOLDER_CONFIG_FILE="test.config"
 
 # 1. Setup or Update local workspace
 if [ ! -d "$LOCAL_WORKSPACE/.git" ]; then
@@ -88,6 +87,14 @@ for item in "${FILES_TO_SYNC_CONFIG[@]}"; do
     fi
 done
 
+# 3c. Create placeholder for test.config if it doesn't exist in the repo yet
+TEST_FILE_PATH="$CONFIG_DIR/$PLACEHOLDER_CONFIG_FILE"
+if [ ! -f "$TEST_FILE_PATH" ]; then
+    echo "# Configuration for $MACHINE_NAME - Managed by dot-git script" > "$TEST_FILE_PATH"
+    echo "Created placeholder for $PLACEHOLDER_CONFIG_FILE in $CONFIG_SUBDIR."
+fi
+
+
 # 4. Check for ANY changes (including untracked/new files)
 git add .
 
@@ -108,4 +115,4 @@ else
     echo "✅ GitHub is already up to date for $MACHINE_NAME."
 fi
 
-# VERSION: 0.01.00
+# VERSION: 0.00.06
