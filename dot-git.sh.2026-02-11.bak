@@ -1,9 +1,9 @@
 #!/bin/bash
-# VERSION: 0.01.01
+# VERSION: 0.01.00
 
 # --- Script to sync machine-specific dotfiles to a central GitHub Repo ---
 
-VERSION="0.01.01"
+VERSION="0.01.00"
 
 # Handle version flags
 if [[ "$1" == "-v" || "$1" == "--version" ]]; then
@@ -30,7 +30,7 @@ FILES_TO_SYNC_CONFIG=(
     ".config/terminator"  # Source path from $HOME
     ".config/lsd"         # Source path from $HOME
     ".vim"                # Directory
-    # "api_keys" REMOVED
+    "api_keys"            # Directory/Files from $HOME/api_keys
 )
 CONFIG_SUBDIR="config_files" 
 
@@ -108,4 +108,4 @@ else
     echo "✅ GitHub is already up to date for $MACHINE_NAME."
 fi
 
-# VERSION: 0.01.01
+# VERSION: 0.01.00
