@@ -1,9 +1,9 @@
 #!/bin/bash
-# VERSION: 0.01.08
+# VERSION: 0.01.10
 
 # --- Script to sync machine-specific dotfiles to a central GitHub Repo ---
 
-VERSION="0.01.08"
+VERSION="0.01.10"
 
 # Handle version flags
 if [[ "$1" == "-v" || "$1" == "--version" ]]; then
@@ -45,7 +45,14 @@ if [ ! -d "$LOCAL_WORKSPACE/.git" ]; then
     git branch --set-upstream-to=origin/main main
 else
     cd "$LOCAL_WORKSPACE" || exit
-    echo "🔄 Local workspace ready. Proceeding to sync local files to repository."
+    echo "🔄 Syncing with GitHub to prevent conflicts..."
+    # Pull with rebase to integrate remote changes BEFORE local sync
+    if git pull --rebase origin main; then
+        echo "✅ Git pull/rebase successful."
+    else
+        echo "❌ ERROR: Git pull/rebase failed. You may have local merge conflicts to resolve manually."
+        exit 1 # Exit if pull fails, as we can't safely proceed with local sync
+    fi
 fi
 
 # 2. Ensure the machine-specific folder and the new config folder exist
@@ -53,15 +60,6 @@ MACHINE_DIR="$LOCAL_WORKSPACE/$MACHINE_NAME"
 CONFIG_DIR="$MACHINE_DIR/$CONFIG_SUBDIR"
 mkdir -p "$MACHINE_DIR"
 mkdir -p "$CONFIG_DIR"
-
-# --- DIAGNOSTIC STEP: Make a guaranteed change on the Desktop ---
-# This ensures we have something new to push if the script is running correctly.
-if [[ "$MACHINE_NAME" == "LinuxKubPC" ]]; then 
-    echo "--- DIAGNOSTIC: Adding unique marker to Desktop's .bashrc ---"
-    echo "# Desktop Marker $(date +%s)" >> "$HOME/.bashrc"
-fi
-# -----------------------------------------------------------------
-
 
 # 3a. SYNC: Copy Root Level Files FROM $HOME/ TO Git Workspace (For Uploading Changes)
 echo "📥 SYNC: Grabbing latest files for $MACHINE_NAME (Root Level) TO Git workspace..."
@@ -95,11 +93,28 @@ for item in "${FILES_TO_SYNC_CONFIG[@]}"; do
     fi
 done
 
-# 4. Check for ANY changes (including untracked/new files)
+# 4a. Check for ANY changes
 git add .
+STATUS_OUTPUT=$(git status --porcelain)
 
-if [[ -n $(git status --porcelain) ]]; then
+if [[ -n $STATUS_OUTPUT ]]; then
     echo "✨ Changes detected for $MACHINE_NAME."
+    
+    # 4b. NEW: Parse and display status changes
+    echo "--- Git Status Summary ---"
+    echo "$STATUS_OUTPUT" | while read -r line; do
+        STATUS_CODE=${line:0:2}
+        FILE_PATH=${line:3}
+        
+        ACTION="Unknown"
+        if [[ "$STATUS_CODE" == "A " ]]; then ACTION="ADDED"; fi
+        if [[ "$STATUS_CODE" == "M " ]]; then ACTION="MODIFIED"; fi
+        if [[ "$STATUS_CODE" == "D " ]]; then ACTION="DELETED"; fi
+        if [[ "$STATUS_CODE" == "MM" ]]; then ACTION="MODIFIED (Both)"; fi
+        
+        echo "  [$ACTION] $FILE_PATH"
+    done
+    echo "--------------------------"
     
     echo "Enter a commit message:"
     read -r commit_msg
@@ -115,4 +130,4 @@ else
     echo "✅ GitHub is already up to date for $MACHINE_NAME."
 fi
 
-# VERSION: 0.01.08
+# VERSION: 0.01.10
