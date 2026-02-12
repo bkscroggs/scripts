@@ -1,9 +1,9 @@
 #!/bin/bash
-# VERSION: 0.01.01
+# VERSION: 0.01.08
 
 # --- Script to sync machine-specific dotfiles to a central GitHub Repo ---
 
-VERSION="0.01.01"
+VERSION="0.01.08"
 
 # Handle version flags
 if [[ "$1" == "-v" || "$1" == "--version" ]]; then
@@ -30,7 +30,6 @@ FILES_TO_SYNC_CONFIG=(
     ".config/terminator"  # Source path from $HOME
     ".config/lsd"         # Source path from $HOME
     ".vim"                # Directory
-    # "api_keys" REMOVED
 )
 CONFIG_SUBDIR="config_files" 
 
@@ -46,8 +45,7 @@ if [ ! -d "$LOCAL_WORKSPACE/.git" ]; then
     git branch --set-upstream-to=origin/main main
 else
     cd "$LOCAL_WORKSPACE" || exit
-    echo "🔄 Syncing with GitHub to prevent conflicts..."
-    git pull origin main --rebase
+    echo "🔄 Local workspace ready. Proceeding to sync local files to repository."
 fi
 
 # 2. Ensure the machine-specific folder and the new config folder exist
@@ -56,18 +54,28 @@ CONFIG_DIR="$MACHINE_DIR/$CONFIG_SUBDIR"
 mkdir -p "$MACHINE_DIR"
 mkdir -p "$CONFIG_DIR"
 
-# 3a. Sync Root Level Files (e.g., .bashrc)
-echo "📥 Grabbing latest files for $MACHINE_NAME (Root Level)..."
+# --- DIAGNOSTIC STEP: Make a guaranteed change on the Desktop ---
+# This ensures we have something new to push if the script is running correctly.
+if [[ "$MACHINE_NAME" == "LinuxKubPC" ]]; then 
+    echo "--- DIAGNOSTIC: Adding unique marker to Desktop's .bashrc ---"
+    echo "# Desktop Marker $(date +%s)" >> "$HOME/.bashrc"
+fi
+# -----------------------------------------------------------------
+
+
+# 3a. SYNC: Copy Root Level Files FROM $HOME/ TO Git Workspace (For Uploading Changes)
+echo "📥 SYNC: Grabbing latest files for $MACHINE_NAME (Root Level) TO Git workspace..."
 for file in "${FILES_TO_SYNC_ROOT[@]}"; do
     if [ -f "$HOME/$file" ]; then
+        echo "   -> Copying $file from $HOME/ to Git workspace."
         cp "$HOME/$file" "$MACHINE_DIR/"
     else
-        echo "⚠️ Warning: Root file $file not found in home directory."
+        echo "⚠️ Warning: Root file $file not found in home directory. Skipping copy."
     fi
 done
 
-# 3b. Sync Config Files/Directories into the $CONFIG_SUBDIR
-echo "📥 Grabbing configuration items into $CONFIG_SUBDIR..."
+# 3b. SYNC: Copy Config Files/Directories into the $CONFIG_SUBDIR (For Uploading Changes)
+echo "📥 SYNC: Grabbing configuration items into $CONFIG_SUBDIR..."
 for item in "${FILES_TO_SYNC_CONFIG[@]}"; do
     SOURCE_PATH="$HOME/$item"
     DEST_PATH="$CONFIG_DIR/"
@@ -76,7 +84,6 @@ for item in "${FILES_TO_SYNC_CONFIG[@]}"; do
         if [ -d "$SOURCE_PATH" ]; then
             # Handle directories recursively
             echo "   -> Copying directory: $item"
-            # Use -r for recursive copy, -f to force overwrite if needed
             cp -rf "$SOURCE_PATH" "$DEST_PATH"
         elif [ -f "$SOURCE_PATH" ]; then
             # Handle single files
@@ -108,4 +115,4 @@ else
     echo "✅ GitHub is already up to date for $MACHINE_NAME."
 fi
 
-# VERSION: 0.01.01
+# VERSION: 0.01.08
